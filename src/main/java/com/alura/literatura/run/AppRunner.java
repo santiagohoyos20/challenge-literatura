@@ -123,6 +123,7 @@ public class AppRunner {
                 """;
         String option = input.nextLine();
         System.out.println(menu);
-        List<Book> books = bookRepository.findByLanguagesContaining(option);
+        List<Book> books = bookRepository.findByLanguageIgnoreCase(option);
+        books.forEach(System.out::println);
     }
 }

@@ -11,7 +11,7 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
     private String title;
-    private List<String> languages;
+    private String language;
     private Integer downloadCount;
     @ManyToMany()
     @JoinTable(
@@ -25,7 +25,7 @@ public class Book {
 
     public Book(BookData bookData, List<Person> authors) {
         this.title = bookData.title();
-        this.languages = bookData.languages();
+        this.language = bookData.languages().get(0);
         this.downloadCount = bookData.downloadCount();
         this.authors = authors;
     }
@@ -34,7 +34,7 @@ public class Book {
     public String toString() {
         return "Book{" +
                 "title='" + title + '\'' +
-                ", languages=" + languages +
+                ", languages=" + language +
                 ", downloadCount=" + downloadCount +
                 '}';
     }
