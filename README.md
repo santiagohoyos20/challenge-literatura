@@ -1,7 +1,6 @@
 # Literatura
 
 Aplicación de consola que permite a los usuarios interactuar mediante texto para buscar, consultar y gestionar información de libros obtenida desde una API pública, desarrollada en el marco del programa de formación Oracle Next Education junto con Alura Latam.
-desarrollado en el marco del programa de formación Oracle Next Education junto con Alura Latam.
 
 La aplicación consume datos desde la API de Gutendex, la cual proporciona acceso a libros del proyecto Project Gutenberg.
 
@@ -35,4 +34,5 @@ El sistema presenta un menú interactivo en consola con las siguientes opciones:
 3. Listar autores registrados.
 4. Listar libros por idioma.
 5. Listar autores vivos en un determinado año.
+
 
