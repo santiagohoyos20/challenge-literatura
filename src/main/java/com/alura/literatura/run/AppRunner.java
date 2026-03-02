@@ -1,15 +1,14 @@
 package com.alura.literatura.run;
 
-import com.alura.literatura.model.Book;
-import com.alura.literatura.model.BookData;
-import com.alura.literatura.model.GutendexResult;
-import com.alura.literatura.model.Person;
+import com.alura.literatura.model.*;
 import com.alura.literatura.repository.BookRepository;
 import com.alura.literatura.repository.PersonRepository;
 import com.alura.literatura.service.ApiClient;
 import com.alura.literatura.service.ConvertData;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
@@ -71,45 +70,129 @@ public class AppRunner {
     }
 
     public BookData getBook(){
-        System.out.println("Escribe el nombre del libro que desea buscar");
+        System.out.println("Escribe el nombre del libro que deseas buscar");
         var bookName = input.nextLine();
         var json = apiClient.getData(URL_BASE + bookName.replace(" ", "%20"));
 
         GutendexResult result = converter.obtenerDatos(json, GutendexResult.class);
         List<BookData> datos = result.books();
         BookData book = datos.get(0);
-        System.out.println("------------------");
-        System.out.println(book);
-        System.out.println("------------------");
+
+        String author = "";
+        if (book.authors().isEmpty()){
+            author = "Desconocido";
+        }else {
+            author = book.authors().get(0).name();
+        }
+
+        String output = """
+                ----- LIBRO -----
+                Titulo: %s
+                Autor: %s
+                Idioma: %s
+                Numero de descargas: %d
+                -----------------
+                """.formatted(book.title(), author, book.languages().get(0), book.downloadCount());
+        System.out.println(output);
         return book;
     }
 
     public void bookByTitle(){
         BookData bookData = getBook();
-        List<Person> authors = bookData.authors().stream()
-                .map(personData -> new Person(personData))
+
+        Optional<Book> existingBook = bookRepository
+                .findByTitleIgnoreCase(bookData.title());
+
+        if (existingBook.isPresent()) {
+            System.out.println("El libro ya existe en la base de datos");
+            return;
+        }
+
+        List<Person> authors = Optional.ofNullable(bookData.authors())
+                .filter(list -> !list.isEmpty())
+                .orElse(List.of(new PersonData(null, null, "Desconocido")))
+                .stream()
+                .map(personData -> {
+
+                    // Buscar si ya existe el autor
+                    return personRepository
+                            .findByNameIgnoreCase(personData.name())
+                            .orElseGet(() -> personRepository.save(new Person(personData)));
+
+                })
                 .collect(Collectors.toList());
-        authors.forEach(author -> personRepository.save(author));
+
+
         Book book = new Book(bookData, authors);
         bookRepository.save(book);
+        System.out.println("Libro guardado correctamente");
     }
 
     public void getRegisteredBooks(){
-        List<Book> registeredBooks = bookRepository.findAll();
-        registeredBooks.forEach(System.out::println);
+        List<Book> registeredBooks = bookRepository.findAllWithAuthors();
+        registeredBooks.forEach(book ->
+                System.out.printf("""
+                ----- LIBRO -----
+                Titulo: %s
+                Autor: %s
+                Idioma: %s
+                Numero de descargas: %d
+                -----------------
+                """.formatted(
+                        book.getTitle(),
+                        book.getAuthors().get(0).getName(),
+                        book.getLanguage(),
+                        book.getDownloadCount()
+                )));
     }
 
     public void getRegisteredAuthors(){
-        List<Person> registeredAuthors = personRepository.findAll();
-        registeredAuthors.forEach(System.out::println);
+        List<Person> registeredAuthors = personRepository.findAllWithBooks();
+        registeredAuthors.forEach(person -> {
+                String titles = person.getBooks()
+                .stream()
+                .map(book -> book.getTitle())
+                .collect(Collectors.joining(", "));
+
+                System.out.printf("""
+                Autor: %s
+                Fecha de nacimiento: %d
+                Fecha de fallecimiento: %d
+                Libro: %s
+                -----------------
+                """.formatted(
+                        person.getName(),
+                        person.getBirthYear(),
+                        person.getDeathYear(),
+                        titles
+                ));
+        });
     }
 
     public void getAliveAuthorsByYear(){
         System.out.println("Ingresa el año: ");
         Integer year = input.nextInt();
         input.nextLine();
-        List<Person> authors = personRepository.aliveAuthors(year);
-        authors.forEach(System.out::println);
+        List<Person> authors = personRepository.getAliveAuthorsByYear(year);
+        authors.forEach(person -> {
+            String titles = person.getBooks()
+                    .stream()
+                    .map(book -> book.getTitle())
+                    .collect(Collectors.joining(", "));
+
+            System.out.printf("""
+                Autor: %s
+                Fecha de nacimiento: %d
+                Fecha de fallecimiento: %d
+                Libro: %s
+                -----------------
+                """.formatted(
+                    person.getName(),
+                    person.getBirthYear(),
+                    person.getDeathYear(),
+                    titles
+            ));
+        });
     }
 
     public void getBooksByLanguage(){
@@ -121,9 +204,22 @@ public class AppRunner {
                 fr- francés
                 pt- portugués
                 """;
-        String option = input.nextLine();
         System.out.println(menu);
+        String option = input.nextLine();
         List<Book> books = bookRepository.findByLanguageIgnoreCase(option);
-        books.forEach(System.out::println);
+        books.forEach(book ->
+                System.out.printf("""
+                ----- LIBRO -----
+                Titulo: %s
+                Autor: %s
+                Idioma: %s
+                Numero de descargas: %d
+                -----------------
+                """.formatted(
+                        book.getTitle(),
+                        book.getAuthors().get(0).getName(),
+                        book.getLanguage(),
+                        book.getDownloadCount()
+                )));
     }
 }
